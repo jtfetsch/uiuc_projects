@@ -1,0 +1,694 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{fancyvrb}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{geometry}
+
+\title{MP3 Report}
+\author{Dennis J. McWherter, Jr. (dmcwhe2) 4 credit \\
+		Joe Fetsch (jfetsch2) 4 credit \\
+		Revanth Reddy (rreddy4) 4 credit}
+
+% Quick command to include prototype figures...
+\newcommand{\prototypefigs}[1]{
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.5\textwidth}
+	\VerbatimInput{../part1/prototypes/most#1.txt}
+	\caption{Most prototypical for digit #1}
+\end{subfigure}%
+\begin{subfigure}{0.5\textwidth}
+	\VerbatimInput{../part1/prototypes/least#1.txt}
+	\caption{Least prototypical for digit #1}
+\end{subfigure}
+\caption{Most and least prototypical figures for digit #1}
+\end{figure}
+}
+
+\begin{document}
+\maketitle
+
+\section{Part 1.1}
+This section discusses our approach and results to part 1.1 for assignment 3.
+
+\subsection{Implementation}
+
+Our implementation takes the standard form for a Naive Bayes classifier. We first train our model using the training data and training labels. With the training set, we are capable of computing the full table for our \emph{likelihood} estimates:
+
+\begin{equation}
+\operatorname{P}(F_{ij} = k | digit)
+\end{equation}
+
+where $k \in \{0, 1\}$, $digit \in \{0,1,..,9\}$, and the $F_{ij}$ denotes the value of the pixel at position $(i, j)$ in a 28 x 28 pixel grid. More specifically, for each distinct $digit$, we compute this probability for each pixel by taking the frequency of occurrence of a specific value (i.e. either $0$ or $1$) across the entire subset of test data that is labeled with the $digit$ class and the dividing by the total number of test images in that class.
+
+Additionally, we use \emph{Laplace smoothing} when estimating our likelihoods. By using this technique, we can more effectively account for rare or unseen values in our model. After some experimentation we found that lower values (i.e. 0.1 vs 10) for our Laplace constant, $k$, provide better overall accuracy for our classifier. This result is logical if we assume our training sample is representative of the real world. A lower constant $k$ produces a lower overall probability for unseen values. Conversely, a large constant $k$ will produce a higher probability in our model for an unseen value. Plainly, if a result is truly very rare, the lower probability is likely more inline with the data the classifier will actually see when put into practice.
+
+Similarly, we can estimate our \emph{priors} by counting the frequency of each $digit$ in our training set and dividing by the total number of training samples. After we have estimated both our \emph{priors} and \emph{likelihoods}, our model is trained and ready to be used for testing.
+
+When testing our model, we use the test data \textbf{without} our test labels. Specifically, we treat our test sample as though it is an unlabeled sample. We then use the \textbf{MAP} algorithm in conjunction with our model to classify each input image from our test sample. That is, we choose the class (i.e. $digit$) that presents the highest overall likelihood given all of the observed pixels in the test image. However, to combine likelihoods, we use the \textbf{log likelihood} variant of MAP to avoid underflow.
+
+Finally, to perform evaluation we take our classified results and compare them against the test labels. This is the first and only time that test labels are used throughout our analysis. In our evaluation, we can breakdown the overall accuracy of our classifier, the accuracy per class, and, finally, compute a \textbf{confusion matrix} to provide better insight into our misclassifications.
+
+\subsection{Accuracy and Confusion Matrix}
+For part 1.1, we used a Laplace smoothing constant of 0.1 resulting in an \emph{overall accuracy} of \textbf{77.3\%} for our classifier.
+
+The per-digit accuracy breakdown is:
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+Digit & Accuracy \\
+\hline
+0 & 84.44\% \\
+1 & 96.30\% \\
+2 & 78.64\% \\
+3 & 80.00\% \\
+4 & 74.77\% \\
+5 & 68.48\% \\
+6 & 76.92\% \\
+7 & 72.64\% \\
+8 & 60.19\% \\
+9 & 80.00\% \\
+\hline
+\end{tabular}
+\caption{Per-digit accuracy on part 1.1 classifier}
+\label{fig:digitAccuracy}
+\end{figure}
+
+The confusion matrix is as follows. Rows and columns are labeled 0-9 from top-bottom and left-right, respectively. Moreover, this matrix displays values as \emph{percentages} rather than decimal places. Therefore, each row is out of 100 rather than 1 (with some small error for rounding).
+
+\begin{figure}[h]
+\centering
+\[
+\left(
+\begin{array}{c|cccccccccc}
+ & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 \\
+\hline
+0 & 84.44  & 0.00   & 1.11  & 0.00   & 1.11  & 5.56  & 3.33  & 0.00  & 4.44  & 0.00 \\
+1 & 0.00   & 96.30  & 0.93  & 0.00   & 0.00  & 1.85  & 0.93  & 0.00  & 0.00  & 0.00 \\
+2 & 0.97   & 2.91   & 78.64 & 3.88   & 1.94  & 0.00  & 5.83  & 0.97  & 4.85  & 0.00 \\
+3 & 0.00   & 1.00   & 0.00  & 80.00  & 0.00  & 3.00  & 2.00  & 7.00  & 1.00  & 6.00 \\
+4 & 0.00   & 0.00   & 0.93  & 0.00   & 74.77 &  0.93 & 3.74  & 0.93  & 1.87  & 16.82 \\
+5 & 2.17   & 1.09   & 1.09  & 13.04  & 3.26  & 68.48 & 1.09  & 1.09  & 2.17  & 6.52 \\
+6 & 1.10   & 4.40   & 4.40  & 0.00   & 4.40  & 6.59  & 76.92 & 0.00  & 2.20  & 0.00 \\
+7 & 0.00   & 4.72   & 3.77  & 0.00   & 2.83  & 0.00  & 0.00  & 72.64 & 2.83  & 13.21 \\
+8 & 0.97   & 0.97   & 2.91  & 13.59  & 2.91  & 7.77  & 0.00  & 0.97  & 60.19 & 9.71 \\
+9 & 1.00   & 1.00   & 0.00  & 3.00   & 10.00 & 2.00  & 0.00  & 2.00  & 1.00  & 80.00
+\end{array}
+\right)
+\]
+\caption{Part 1.1 confusion matrix}
+\label{fig:confusionMatrix}
+\end{figure}
+
+For the remaining ASCII result images required for the report (i.e. prototype figures), please refer to section \textbf{Appendix A} (section \ref{appendix:a}).
+
+\subsection{Odds Ratio Plots}
+This section describes our odds ratio calculation for the 4 highest pairs of misclassified digits. Just as in the assignment write-up, all plots are done to the log-scale. Similarly, these plots are looking for pixels where the value is 1.
+
+\begin{figure}[h]
+\hspace*{-1.5in}
+\includegraphics[scale=0.33]{../part1/plots/likelihood4.png}%
+\includegraphics[scale=0.33]{../part1/plots/likelihood9.png}%
+\includegraphics[scale=0.33]{../part1/plots/odds4_9.png}
+\caption{Log likelihood plots for 4 and 9. Log of odds ratio for 4 / 9.}
+\label{fig:odds4_9}
+\end{figure}
+
+\begin{figure}[H]
+\hspace*{-1.5in}
+\includegraphics[scale=0.33]{../part1/plots/likelihood5.png}%
+\includegraphics[scale=0.33]{../part1/plots/likelihood3.png}%
+\includegraphics[scale=0.33]{../part1/plots/odds5_3.png}
+\caption{Log likelihood plots for 5 and 3. Log of odds ratio for 5 / 3.}
+\label{fig:odds5_3}
+\end{figure}
+
+\begin{figure}[H]
+\hspace*{-1.5in}
+\includegraphics[scale=0.33]{../part1/plots/likelihood7.png}%
+\includegraphics[scale=0.33]{../part1/plots/likelihood9.png}%
+\includegraphics[scale=0.33]{../part1/plots/odds7_9.png}
+\caption{Log likelihood plots for 7 and 9. Log of odds ratio for 7 / 9.}
+\label{fig:odds7_9}
+\end{figure}
+
+\begin{figure}[H]
+\hspace*{-1.5in}
+\includegraphics[scale=0.33]{../part1/plots/likelihood8.png}%
+\includegraphics[scale=0.33]{../part1/plots/likelihood3.png}%
+\includegraphics[scale=0.33]{../part1/plots/odds8_3.png}
+\caption{Log likelihood plots for 8 and 3. Log of odds ratio for 8 / 3.}
+\label{fig:odds8_3}
+\end{figure}
+
+\newpage
+
+\section{Part 1.2}
+This section describes our approach, modifications, and results to part 1.2 for assignment 3.
+
+\subsection{Implementation}
+Our implementation was slightly modified from part 1.1. Primarily, we changed our calculation for our likelihoods to contain any combination of values provided within our pixel group. That is, instead of the valid values being only $\{0, 1\}$, they were now $2^n$ where $n$ is the number of pixels in the group. More concretely, if you had a pixel group of size 2 (i.e. 1 x 2 or 2 x 1), the possible values would be $\{00, 01, 10, 11\}$. Similarly, we modified our implementation for a configurable grouping type; namely, overlapping and non-overlapping. In the case of non-overlapping, all values pixels in the group were computed with the same probability for that sequence. In the overlapping section, each pixel would be computed separately where it was considered the \emph{starting} pixel in the group. Edge pixels were appropriately wrapped around modulo 28 (i.e. the size of the square grid representing a digit image).
+
+\subsection{Solutions}
+
+This section presents the solutions for part 1.2. Accuracy in the charts below is the total percentage of accurately classified images over the whole test set.
+
+\begin{figure}[H]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Dimensions & Accuracy (\%) & Training Time (s) & Classifying Time (s) \\
+\hline
+1 x 1 & 77.3 & 6.89 & 13.89 \\
+2 x 2 & 83.5 & 13.15 & 25.63 \\
+2 x 4 & 78.2 & 19.22 & 34.74 \\
+4 x 2 & 72.7 & 22.94 & 41.62 \\
+4 x 4 & 56.6 & 848.38 & 2614.19 \\
+\hline
+\end{tabular}
+\caption{Solution table for part 1.2 containing data for \textbf{disjoint} pixel groups of specified dimension.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Dimensions & Accuracy (\%) & Training Time (s) & Classifying Time (s) \\
+\hline
+1 x 1 & 77.3 & 6.00 & 13.69 \\
+2 x 2 & 87.0 & 12.26 & 25.50 \\
+2 x 4 & 89.7 & 18.02 & 34.14 \\
+4 x 2 & 89.7 & 22.14 & 41.92 \\
+4 x 4 & 86.1 & 918.99 & 2638.24 \\
+2 x 3 & 88.8 & 14.52 & 29.36 \\
+3 x 2 & 89.9 & 16.07 & 33.24  \\
+3 x 3 & 89.9 & 22.86 & 39.42 \\
+\hline
+\end{tabular}
+\caption{Solution table for part 1.2 containing data for \textbf{overlapping} pixel groups of specified dimension.}
+\end{figure}
+
+\subsection{Discussion}
+The \textbf{accuracy} of the disjoint vs. overlapping pixel group classifiers was generally better in the overlapping case. The exception is when running these two schemes on a 1x1 group (i.e. single pixel), the result is the same for both (as well as for part 1.1) since 1x1 is simply a special case for our general solution. Moreover, the groups of pixels generally (with few exceptions, see charts above) perform better than observing only a single pixel. This is most likely due to the fact that groups of pixels take into account a greater amount of information than a single pixel. In the cases where groups of pixels perform worse, this result could be from capturing insignificant features. The amount of \emph{significant} features captured by the model depends highly on the shape and size of the groups.
+
+The \textbf{running times} of training and testing are highly correlated to the number of pixels in a group. The running times were always better on smaller groups of pixels. Since the number of features is $2^{rowDim*colDim}$, we can see that the computation must increase with larger pixel groups. For example, on a 1x1 pixel group, there are only $2^{1*1} = 2$ possible values; however, on a 4x4 pixel group there are $2^{4*4} = 2^{16} = 65536$ possible values for each pixel. This exponentiation in values can also be seen in our running times. If you consider a 3x3 pixel group you'll observe that there are $2^9 = 512$ different possible values. This is \emph{roughly} two orders of magnitude fewer values than for a 4x4 pixel group. Likewise, when you compare running times of either training or testing, you'll see that the same two orders of magnitude are approximately reflected there in computation time.
+
+\section{Part 2.1}
+
+This section discusses the implementation and results of part 2.
+
+\subsection{Implementation}
+Our implementation was quite similar to part 1. The major differences lie in our data parsing with the new format and in the likelihood estimates for each classifier. Since the Multinomial and Bernoulli classifier had different likelihood estimates, those were modified accordingly to meet their specification as described in the assignment write-up.
+
+\subsection{Multinomial Results}
+The Multinomial classifier had an overall accuracy of \textbf{73.00\%} on the movie ratings dataset and \textbf{91.84\%} on the Fisher 2-topic dataset. Below we present several figures to describe model accuracy. These include the confusion matrices as well as per-class accuracy tables. Moreover, we provide the top 10 words by greatest likelihood \emph{per class} and also, the top 10 words by greatest odds ratio.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.3\textwidth}
+\begin{tabular}{|c|c|}
+\hline
+Class & Accuracy \\
+\hline
+-1 & 73.20\% \\
+1 & 72.80\% \\
+\hline
+\end{tabular}
+\caption{Movie ratings}
+\end{subfigure}%
+\begin{subfigure}{0.3\textwidth}
+\begin{tabular}{|c|c|}
+\hline
+Class & Accuracy \\
+\hline
+-1 & 93.88\% \\
+1 & 89.80\% \\
+\hline
+\end{tabular}
+\caption{Fisher 2-topic}
+\end{subfigure}
+\caption{Multinomial naive bayes model accuracy by class.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{subfigure}{0.5\textwidth}
+\[
+\left(
+\begin{array}{c|cc}
+ & -1 & 1 \\
+\hline
+-1 & 73.20 & 26.80 \\
+1 & 27.20 & 72.80 \\
+\end{array}
+\right)
+\]
+\caption{Movie-ratings}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\[
+\left(
+\begin{array}{c|cc}
+ & -1 & 1 \\
+\hline
+-1 & 93.88 & 6.12 \\
+1 & 10.20 & 89.80 \\
+\end{array}
+\right)
+\]
+\caption{Fisher 2-topic}
+\end{subfigure}
+\caption{Confusion matrices for Multinomial naive bayes model (values in percent)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.3\textwidth}
+\begin{tabular}{|c|c|}
+\hline
+Class -1 & Class 1 \\
+\hline
+movie &  film\\
+film  &  movie\\
+like  &  --\\
+one   &  one\\
+--    &  like\\
+bad   &  story\\
+story &  good\\
+much  &  comedy\\
+time  &  way\\
+even  &  even\\
+\hline
+\end{tabular}
+\caption{Movie ratings}
+\end{subfigure}%
+\begin{subfigure}{0.3\textwidth}
+\begin{tabular}{|c|c|}
+\hline
+Class -1 & Class 1 \\
+\hline
+know  &  know\\
+yeah  &  yeah\\
+uh    &  like\\
+like  &  uh\\
+um    &  um\\
+right &  right\\
+just  &  don\\
+think &  think\\
+oh    &  just\\
+don   &  oh\\
+\hline
+\end{tabular}
+\caption{Fisher 2-topic}
+\end{subfigure}
+\caption{Top 10 words by descending likelihood for Multinomial model per class.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.25\textwidth}
+\begin{tabular}{|c|}
+\hline
+flat\\
+disturbing\\
+stale\\
+tired\\
+mediocre\\
+plain\\
+refreshingly\\
+engrossing\\
+haunting\\
+grief\\
+\hline
+\end{tabular}
+\caption{Movie ratings}
+\end{subfigure}%
+\begin{subfigure}{0.25\textwidth}
+\begin{tabular}{|c|}
+\hline
+compatibility\\
+friendship\\
+attracted\\
+inflation\\
+waitresses\\
+attraction\\
+waitress\\
+retail\\
+walmart\\
+assistance\\
+\hline
+\end{tabular}
+\caption{Fisher 2-topic}
+\end{subfigure}
+\caption{Top 10 words based on odds ratio for Multinomial naive bayes model.}
+\end{figure}
+
+\subsection{Bernoulli Results}
+The Bernoulli classifier had an overall accuracy of \textbf{73.20\%} on the movie ratings dataset and \textbf{94.90\%} on the Fisher 2-topic dataset. Below we present several figures to describe model accuracy. These include the confusion matrices as well as per-class accuracy tables. Moreover, we provide the top 10 words by greatest likelihood \emph{per class} and also, the top 10 words by greatest odds ratio.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.3\textwidth}
+\begin{tabular}{|c|c|}
+\hline
+Class & Accuracy \\
+\hline
+-1 & 71.80\% \\
+1 & 74.60\% \\
+\hline
+\end{tabular}
+\caption{Movie ratings}
+\end{subfigure}%
+\begin{subfigure}{0.3\textwidth}
+\begin{tabular}{|c|c|}
+\hline
+Class & Accuracy \\
+\hline
+-1 & 91.84\% \\
+1 & 97.96\% \\
+\hline
+\end{tabular}
+\caption{Fisher 2-topic}
+\end{subfigure}
+\caption{Bernoulli naive bayes model accuracy by class.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{subfigure}{0.5\textwidth}
+\[
+\left(
+\begin{array}{c|cc}
+ & -1 & 1 \\
+\hline
+-1 & 71.80 & 28.20 \\
+1 & 25.40 & 74.60 \\
+\end{array}
+\right)
+\]
+\caption{Movie-ratings}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\[
+\left(
+\begin{array}{c|cc}
+ & -1 & 1 \\
+\hline
+-1 & 91.84 & 8.16 \\
+1 & 2.04 & 97.96 \\
+\end{array}
+\right)
+\]
+\caption{Fisher 2-topic}
+\end{subfigure}
+\caption{Confusion matrices for Bernoulli naive bayes model (values in percent)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.3\textwidth}
+\begin{tabular}{|c|c|}
+\hline
+Class -1 & Class 1 \\
+\hline
+movie & film \\
+film & movie \\
+like & one \\
+one & like \\
+story & -- \\
+much & story \\
+-- & comedy \\
+bad & way \\
+time & even \\
+even & good \\
+\hline
+\end{tabular}
+\caption{Movie ratings}
+\end{subfigure}%
+\begin{subfigure}{0.3\textwidth}
+\begin{tabular}{|c|c|}
+\hline
+Class -1 & Class 1 \\
+\hline
+like & um \\
+know & don \\
+just & just \\
+yeah & think \\
+don & like \\
+think & know \\
+um & people \\
+right & yeah \\
+oh & oh \\
+really & right \\
+\hline
+\end{tabular}
+\caption{Fisher 2-topic}
+\end{subfigure}
+\caption{Top 10 words by descending likelihood for Bernoulli model per class.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.25\textwidth}
+\begin{tabular}{|c|}
+\hline
+flat \\
+stale \\
+disturbing \\
+tired \\
+mediocre \\
+refreshingly \\
+engrossing \\
+haunting \\
+plain \\
+grief \\
+\hline
+\end{tabular}
+\caption{Movie ratings}
+\end{subfigure}%
+\begin{subfigure}{0.25\textwidth}
+\begin{tabular}{|c|}
+\hline
+attracted \\
+compatibility \\
+inflation \\
+waitresses \\
+waitress \\ 
+attraction \\
+friendship \\
+retail \\
+assistance \\
+hourly \\
+\hline
+\end{tabular}
+\caption{Fisher 2-topic}
+\end{subfigure}
+\caption{Top 10 words based on odds ratio for Bernoulli naive bayes model.}
+\end{figure}
+
+\subsection{Result Discussion}
+When looking at the top 10 words based on likelihood for movie ratings for the Bernoulli model, the majority of the words appear to have a more \emph{neutral} sentiment in typical English vernacular. Contrarily, when ranking based on odds ratio, it can be observed that the words have a far strong sentiment attached to them. Likewise, a similar phenomenon can be observed when comparing the results of the Fisher 2-topic results.
+
+\section{Part 2.2}
+This section provides our results and discussion for part 2.2.
+
+\subsection{Multinomial Results}
+The overall accuracy for our classifier using the Bernoulli model on the full 40-topic Fisher dataset is \textbf{86.22\%}. Presented below is the confusion matrix. Indices are sorted top to bottom and left to right in ascending numerical order.
+
+\newgeometry{margin=1cm}
+\begin{landscape}
+
+\begingroup
+\begin{figure}[H]
+\centering
+\tiny\arraycolsep=1pt\[
+\left(
+\begin{array}{*{40}c}
+82.22 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 13.33 & 2.22 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.22 \\
+0.00 & 89.29 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.93 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 1.79 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 97.14 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.86 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 94.44 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.56 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 87.50 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 12.50 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 88.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+3.57 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 78.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 95.65 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.35 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 37.50 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 43.75 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 12.50 & 6.25 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 & 85.71 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.04 & 0.00 & 0.00 & 0.00 & 0.00 & 83.67 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.08 & 2.04 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.08 & 0.00 & 0.00 & 0.00 & 0.00 & 4.08 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 28.57 & 57.14 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 7.14 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 92.50 & 0.00 & 0.00 & 0.00 & 0.00 & 2.50 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+3.70 & 3.70 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.70 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.70 & 85.19 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 4.35 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.70 & 0.00 & 82.61 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.35 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 9.52 & 0.00 & 0.00 & 57.14 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 33.33 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.45 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.45 & 72.41 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 17.24 & 0.00 & 0.00 & 0.00 & 0.00 & 3.45 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 2.78 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.78 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.78 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 86.11 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.78 & 2.78 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.04 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 6.12 & 0.00 & 0.00 & 0.00 & 2.04 & 0.00 & 0.00 & 79.59 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.08 & 0.00 & 6.12 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 88.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 7.69 & 0.00 & 0.00 & 3.85 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 88.46 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 20.83 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 20.83 & 0.00 & 0.00 & 8.33 & 41.67 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.33 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.12 & 0.00 & 0.00 & 0.00 & 0.00 & 96.88 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.85 & 7.69 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.85 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 80.77 & 0.00 & 3.85 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 92.86 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 3.85 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 96.15 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.35 & 0.00 & 0.00 & 21.74 & 0.00 & 0.00 & 0.00 & 4.35 & 0.00 & 4.35 & 0.00 & 4.35 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 60.87 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 2.27 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.27 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 90.91 & 0.00 & 0.00 & 2.27 & 2.27 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 84.62 & 0.00 & 0.00 & 15.38 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 83.33 & 0.00 & 16.67 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 89.29 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.94 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.88 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.94 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 88.24 & 0.00 \\
+0.00 & 2.94 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.88 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.88 & 0.00 & 0.00 & 0.00 & 2.94 & 0.00 & 0.00 & 0.00 & 2.94 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.94 & 2.94 & 73.53 \\
+\end{array}
+\right)
+\]
+\caption{Confusion matrix for Fisher 40-topic Multinomial model.}
+\end{figure}
+\endgroup
+\end{landscape}
+\restoregeometry
+
+\subsection{Bernoulli Results}
+The overall accuracy for our classifier using the Bernoulli model on the full 40-topic Fisher dataset is \textbf{83.97\%}. Presented below is the confusion matrix. Indices are sorted top to bottom and left to right in ascending numerical order.
+
+\newgeometry{margin=1cm}
+\begin{landscape}
+
+\begingroup
+\begin{figure}[H]
+\centering
+\tiny\arraycolsep=1pt\[
+\left(
+\begin{array}{*{40}c}
+82.22 & 2.22 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.22 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 11.11 & 2.22 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 89.29 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.93 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 1.79 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 91.43 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.86 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.71 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 5.56 & 0.00 & 83.33 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.56 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.56 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 93.75 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 6.25 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 84.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+3.57 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 & 75.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 68.75 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 6.25 & 0.00 & 0.00 & 6.25 & 0.00 & 0.00 & 0.00 & 12.50 & 6.25 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 & 92.86 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+2.04 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.04 & 0.00 & 0.00 & 0.00 & 0.00 & 79.59 & 2.04 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 6.12 & 2.04 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.08 & 0.00 & 0.00 & 0.00 & 0.00 & 2.04 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 85.71 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 93.75 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 6.25 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 17.50 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 72.50 & 0.00 & 0.00 & 0.00 & 0.00 & 2.50 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.00 & 0.00 & 2.50 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+3.70 & 3.70 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.70 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 85.19 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.70 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 4.35 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.70 & 0.00 & 82.61 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.35 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.76 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.76 & 0.00 & 0.00 & 57.14 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 33.33 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.45 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 6.90 & 65.52 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 17.24 & 0.00 & 3.45 & 0.00 & 0.00 & 3.45 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 2.78 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.78 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.56 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 83.33 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.56 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 14.29 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.04 & 0.00 & 0.00 & 0.00 & 75.51 & 0.00 & 2.04 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.08 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.04 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 4.00 & 0.00 & 0.00 & 0.00 & 88.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 7.69 & 0.00 & 0.00 & 3.85 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 88.46 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 12.50 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 20.83 & 0.00 & 0.00 & 8.33 & 50.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.17 & 4.17 & 0.00 \\
+0.00 & 3.12 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 96.88 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.85 & 7.69 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.85 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 80.77 & 3.85 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 100.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.14 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 89.29 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 3.85 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 92.31 & 0.00 & 0.00 & 0.00 & 0.00 & 3.85 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.70 & 0.00 & 0.00 & 17.39 & 4.35 & 0.00 & 0.00 & 0.00 & 0.00 & 8.70 & 0.00 & 4.35 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 4.35 & 0.00 & 52.17 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 4.55 & 0.00 & 0.00 & 2.27 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.27 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 88.64 & 0.00 & 0.00 & 2.27 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 7.69 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 92.31 & 0.00 & 0.00 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.33 & 0.00 & 0.00 & 0.00 & 0.00 & 83.33 & 0.00 & 8.33 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 3.57 & 0.00 & 7.14 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 85.71 & 0.00 & 0.00 \\
+0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.88 & 0.00 & 0.00 & 2.94 & 0.00 & 0.00 & 0.00 & 0.00 & 2.94 & 11.76 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.88 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 70.59 & 0.00 \\
+0.00 & 2.94 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 5.88 & 0.00 & 0.00 & 0.00 & 2.94 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 8.82 & 0.00 & 2.94 & 2.94 & 0.00 & 0.00 & 0.00 & 0.00 & 8.82 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 2.94 & 2.94 & 2.94 & 55.88\\
+\end{array}
+\right)
+\]
+\caption{Confusion matrix for Fisher 40-topic Bernoulli model.}
+\end{figure}
+\endgroup
+\end{landscape}
+\restoregeometry
+
+\subsection{Misclassification}
+Since our multinomial classifier performed better on the fisher's 40-topic dataset, we charted the highest confusion rates for each category. These rates are outlined in the table below. If there were ties, the lowest numerical topic id was selected. In the case of values with 0\% rates, this means that there were no misclassifications for that particular topic.
+
+\begin{figure}[H]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+Actual & Confused & Percent \\
+\hline
+1 & 17 & 13.33\\
+2 & 19 & 8.93\\
+3 & 22 & 2.86\\
+4 & 39 & 5.56\\
+5 & 1 & 0\\
+6 & 22 & 12.5\\
+7 & 25 & 8.0\\
+8 & 26 & 7.14\\
+9 & 30 & 4.35\\
+10 & 17 & 43.75\\
+11 & 8 & 7.14\\
+12 & 1 & 0\\
+13 & 23 & 4.08\\
+14 & 13 & 28.57\\
+15 & 1 & 0\\
+16 & 1 & 0\\
+17 & 32 & 5.0\\
+18 & 1 & 3.7\\
+19 & 17 & 8.7\\
+20 & 32 & 33.33\\
+21 & 32 & 17.24\\
+22 & 1 & 0\\
+23 & 2 & 2.78\\
+24 & 17 & 6.12\\
+25 & 3 & 4.0\\
+26 & 5 & 7.69\\
+27 & 13 & 20.83\\
+28 & 23 & 3.12\\
+29 & 1 & 0\\
+30 & 9 & 7.69\\
+31 & 1 & 0\\
+32 & 17 & 3.57\\
+33 & 2 & 3.85\\
+34 & 13 & 21.74\\
+35 & 5 & 2.27\\
+36 & 39 & 15.38\\
+37 & 39 & 16.67\\
+38 & 16 & 3.57\\
+39 & 23 & 5.88\\
+40 & 13 & 5.88\\   
+\hline
+\end{tabular}
+\caption{Misclassification rates per-topic for Fisher 40 dataset with Multinomial classifier}
+\end{figure}
+
+\subsection{Discussion}
+The Multinomial and Bernoulli classifiers both performed better than 80\% on the Fisher 40 dataset. However, the Multinomial classifier resulted in a better overall classification than the Bernoulli classifier. This could be due to the amount of data used to train our models. Since Bernoulli takes a broader approach by looking at the entire document, it has the opportunity to better estimate the shape of the classification with fewer data points and fewer classes. However, when more granular data is available and a greater number of classes, the Multinomial distribution is capable of better capturing the more subtle nuances among classes since it operates at a token level. Since word counts and redundancy are taken into account for the Multinomial distribution, it allows for greater overall differentiation.
+
+\newpage
+
+\section{Appendix}
+\subsection{A}
+\label{appendix:a}
+\prototypefigs{0}
+\prototypefigs{1}
+\prototypefigs{2}
+\prototypefigs{3}
+\prototypefigs{4}
+\prototypefigs{5}
+\prototypefigs{6}
+\prototypefigs{7}
+\prototypefigs{8}
+\prototypefigs{9}
+
+\end{document}

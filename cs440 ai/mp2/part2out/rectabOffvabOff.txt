@@ -1,0 +1,23 @@
+Playing...
+
+Game complete!
+-----
+Final board configuration:
+1 1 1 1 1 1 1 0 2 0 
+1 0 0 0 0 0 0 0 0 0 
+1 0 0 0 0 0 2 2 0 2 
+2 2 2 2 1 0 0 0 2 2 
+2 0 0 0 2 0 0 0 0 2 
+
+Stats:
+------
+Expanded nodes for player 1: 11123
+Expanded nodes for player 2: 8932
+Average expanded nodes per move for player 1: 556.15
+Average expanded nodes per move for player 2: 446.6
+Average time per move for player 1: 752.75ms
+Average time per move for player 2: 805.0ms
+Pieces captured by player 1: 7
+Pieces captured by player 2: 10
+Total turns taken throughout game: 40
+Game winner: 2
